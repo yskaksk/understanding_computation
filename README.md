@@ -1,2 +1,3 @@
 # understanding_computation
-understanding_computation in Rust
+
+[アンダースタンディング　コンピュテーション](https://www.amazon.co.jp/dp/487311697X) をRustで実装する
