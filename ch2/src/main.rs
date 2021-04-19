@@ -65,17 +65,10 @@ impl Elm {
         }
     }
 
-    fn get_val(num: Box<Elm>) -> i32 {
-        match *num {
-            Elm::Number { value: val } => val,
-            _ => panic!("haha")
-        }
-    }
-
     fn reduce(&self) -> Elm {
         match self {
             Elm::Number { value: _ } => { self.clone() },
-            Elm::Add { right, left } => {
+            Elm::Add { left, right } => {
                 if right.reducible() {
                     Elm::Add {
                         right: Box::new(right.reduce()),
@@ -87,12 +80,16 @@ impl Elm {
                         left: Box::new(left.reduce())
                     }
                 } else {
-                    Elm::Number {
-                        value: Elm::get_val(right.clone()) + Elm::get_val(left.clone())
+                    match (left.as_ref(), right.as_ref()) {
+                        (
+                            Elm::Number { value: l_val},
+                            Elm::Number { value: r_val}
+                        ) => { Elm::new_number(l_val + r_val) },
+                        _ => unreachable!(),
                     }
                 }
             },
-            Elm::Multiply { right, left} => {
+            Elm::Multiply { left, right } => {
                 if right.reducible() {
                     Elm::Multiply {
                         right: Box::new(right.reduce()),
@@ -104,8 +101,12 @@ impl Elm {
                         left: Box::new(left.reduce())
                     }
                 } else {
-                    Elm::Number {
-                        value: Elm::get_val(right.clone()) * Elm::get_val(left.clone())
+                    match (left.as_ref(), right.as_ref()) {
+                        (
+                            Elm::Number { value: l_val},
+                            Elm::Number { value: r_val}
+                        ) => { Elm::new_number(l_val * r_val) },
+                        _ => unreachable!(),
                     }
                 }
             }
