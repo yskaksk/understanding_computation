@@ -28,22 +28,16 @@ enum Elm {
 impl Elm {
     fn to_string(&self) -> String {
         match self {
-            Elm::Number { value } => { value.to_string() }
-            Elm::Add { right, left } => {
-                let s = right.to_string().to_string() + " + " + &left.to_string();
-                s
-            }
-            Elm::Multiply { right, left } => {
-                let s = right.to_string().to_string() + " * " + &left.to_string();
-                s
-            }
+            Elm::Number { value } => value.to_string(),
+            Elm::Add { left, right } => left.to_string().to_string() + " + " + &right.to_string(),
+            Elm::Multiply { left, right } => left.to_string().to_string() + " * " + &right.to_string()
         }
     }
 
     fn reducible(&self) -> bool {
         match self {
-            Elm::Number { value: _ } => { false }
-            _ => { true }
+            Elm::Number { value: _ } => false,
+            _ => true
         }
     }
 
@@ -67,7 +61,7 @@ impl Elm {
 
     fn reduce(&self) -> Elm {
         match self {
-            Elm::Number { value: _ } => { self.clone() },
+            Elm::Number { value: _ } => self.clone(),
             Elm::Add { left, right } => {
                 if right.reducible() {
                     Elm::Add {
