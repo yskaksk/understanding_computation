@@ -3,19 +3,17 @@ use std::collections::HashMap;
 fn main() {
     let one = Expression::new_number(1);
     let two = Expression::new_number(2);
-    let three = Expression::new_number(3);
-    let four = Expression::new_number(4);
     let var_x = Expression::new_variable("x".to_string());
     let var_y = Expression::new_variable("y".to_string());
 
     let p = Expression::LessThan {
-        left: Box::new(Expression::new_add(Expression::new_mul(three, four), var_x)),
-        right: Box::new(Expression::new_mul(Expression::new_add(one, two), var_y))
+        left: Box::new(Expression::new_add(one, var_x)),
+        right: Box::new(Expression::new_mul(two, var_y))
     };
 
     let mut env = HashMap::new();
-    env.insert("x".to_string(), 10);
-    env.insert("y".to_string(), 88);
+    env.insert("x".to_string(), Expression::new_number(10));
+    env.insert("y".to_string(), Expression::new_number(88));
 
     let mut m = Machine {
         exp: p.clone()
@@ -45,6 +43,19 @@ impl Machine {
     }
 }
 
+struct StatementMachine {
+    stm: Statement,
+    env: Enviroment
+}
+
+impl StatementMachine {
+    fn step(&mut self, env: &mut Enviroment) {
+        (stm, env) = self.stm.clone().reduce(env);
+        self.stm = stm;
+        self.env = env;
+    }
+}
+
 #[derive(Clone)]
 enum Statement {
     DoNothing,
@@ -69,7 +80,7 @@ impl Statement {
         }
     }
 
-    fn reduce(&self, env: &Enviroment) -> (Statement, &Enviroment){
+    fn reduce<'a>(&self, env: &'a mut Enviroment) -> (Statement, &'a mut Enviroment){
         match self {
             Statement::Assign { name, exp } => {
                 if exp.reducible() {
@@ -78,7 +89,7 @@ impl Statement {
                         exp: exp.reduce(&env.clone())
                     }, env)
                 } else {
-                    env.insert(name.to_string(), *exp);
+                    env.insert(name.to_string(), exp.clone());
                     (Statement::DoNothing, env)
                 }
             },
@@ -221,7 +232,7 @@ impl Expression {
             },
             Expression::Variable { name } => {
                 match env.get(name) {
-                    Some(value) => Expression::new_number(*value),
+                    Some(value) => value.clone(),
                     None => unreachable!(),
                 }
             }
