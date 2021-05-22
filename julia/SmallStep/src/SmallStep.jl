@@ -1,4 +1,4 @@
-module Compute
+module SmallStep
 
 include("./expression.jl")
 include("./statement.jl")

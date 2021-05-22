@@ -1,12 +1,12 @@
-include("./src/Compute.jl")
+include("./src/SmallStep.jl")
 
-using .Compute
+using .SmallStep
 
 function main()
     s = Statement[
         Assign(:c, Num(0)),
         Assign(:r, Num(1)),
-        Compute.While(
+        SmallStep.While(
             LessThan(Variable(:c), Num(10)),
             Sequence(
                 Assign(:r, Mul(Variable(:r), Num(2))),
