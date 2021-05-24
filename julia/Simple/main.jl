@@ -1,6 +1,6 @@
-include("./src/SmallStep.jl")
+include("./src/Simple.jl")
 
-using .SmallStep
+using .Simple
 
 function main()
     s = Statement[
