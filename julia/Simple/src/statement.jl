@@ -77,6 +77,39 @@ function reduce(s::Sequence, env::Environment)::Tuple{Statement, Environment}
     end
 end
 
+evaluate(s::Statement) = evaluate(s, Environment())
+evaluate(::DoNothing, env::Environment) = env
+
+function evaluate(s::Assign, env::Environment)::Environment
+    return merge(env, Dict(s.name => evaluate(s.expression, env)))
+end
+
+function evaluate(s::If, env::Environment)::Environment
+    cond = evaluate(s.condition, env)
+    if cond == Boolean(true)
+        evaluate(s.consequence, env)
+    elseif cond == Boolean(false)
+        evaluate(s.alternative, env)
+    else
+        error("condition must be a boolean")
+    end
+end
+
+function evaluate(s::Sequence, env::Environment)::Environment
+    evaluate(s.second, evaluate(s.first, env))
+end
+
+function evaluate(s::While, env::Environment)::Environment
+    cond = evaluate(s.condition, env)
+    if cond == Boolean(true)
+        evaluate(s, evaluate(s.body, env))
+    elseif cond == Boolean(false)
+        env
+    else
+        error("condition must be a boolean")
+    end
+end
+
 mutable struct Machine
     statement::Statement
     environment::Environment

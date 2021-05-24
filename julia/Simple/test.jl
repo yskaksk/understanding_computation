@@ -154,4 +154,36 @@ end
     end
 end
 
+@testset "evaluate" begin
+    @testset "Expression" begin
+        @test evaluate(Num(3), Environment()) == Num(3)
+        @test evaluate(Boolean(false), Environment()) == Boolean(false)
+        @test evaluate(Variable(:x), Environment(:x => Num(3))) == Num(3)
+        @test evaluate(Add(Num(3), Num(5)), Environment()) == Num(8)
+        @test evaluate(Mul(Num(2), Num(3)), Environment()) == Num(6)
+        @test evaluate(LessThan(Num(3), Num(10)), Environment()) == Boolean(true)
+    end
+    @testset "Nested Expression" begin
+        @test evaluate(Add(Variable(:x), Num(3)), Environment(:x => Num(10))) == Num(13)
+    end
+    @testset "Statement" begin
+        @test evaluate(DoNothing(), Environment(:x => Num(1))) == Environment(:x => Num(1))
+        @test evaluate(
+            If(
+               LessThan(Num(1), Num(2)),
+               Assign(:x, Num(1)),
+               Assign(:y, Num(11))),
+            Environment()) == Environment(:x => Num(1))
+        @test evaluate(Sequence(Assign(:x, Num(1)), Assign(:y, Num(11))), Environment()) == Environment(:x => Num(1), :y => Num(11))
+        @test evaluate(Sequence(Assign(:x, Num(1)), Assign(:x, Num(11))), Environment()) == Environment(:x => Num(11))
+    end
+    @testset "While" begin
+        while_s = While(
+            LessThan(Variable(:x), Num(5)),
+            Assign(:x, Mul(Variable(:x), Num(3)))
+        )
+        @test evaluate(while_s, Environment(:x => Num(1))) == Environment(:x => Num(9))
+    end
+end
+
 end

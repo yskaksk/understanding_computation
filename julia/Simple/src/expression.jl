@@ -80,3 +80,11 @@ to_s(v::Variable) = String(v.name)
 function reduce(v::Variable, env::Environment)::Expression
     return env[v.name]
 end
+
+evaluate(exp::Num, ::Environment) = exp
+evaluate(exp::Boolean, ::Environment) = exp
+evaluate(exp::Variable, env::Environment) = env[exp.name]
+evaluate(exp::Add, env::Environment) = (evaluate(exp.left, env).value + evaluate(exp.right, env).value) |> Num
+evaluate(exp::Mul, env::Environment) = (evaluate(exp.left, env).value * evaluate(exp.right, env).value) |> Num
+evaluate(exp::LessThan, env::Environment) = (evaluate(exp.left, env).value < evaluate(exp.right, env).value) |> Boolean
+
