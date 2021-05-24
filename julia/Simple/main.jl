@@ -6,7 +6,7 @@ function main()
     s = Statement[
         Assign(:c, Num(0)),
         Assign(:r, Num(1)),
-        SmallStep.While(
+        Simple.While(
             LessThan(Variable(:c), Num(10)),
             Sequence(
                 Assign(:r, Mul(Variable(:r), Num(2))),
