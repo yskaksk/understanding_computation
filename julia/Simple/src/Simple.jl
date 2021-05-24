@@ -21,5 +21,6 @@ export mrun
 export join_statements
 export inspect
 export to_s
+export evaluate
 
 end
