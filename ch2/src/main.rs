@@ -1,26 +1,96 @@
 use std::collections::HashMap;
 
 fn main() {
-    let one = Expression::new_number(1);
-    let two = Expression::new_number(2);
-    let var_x = Expression::new_variable("x".to_string());
-    let var_y = Expression::new_variable("y".to_string());
+    //let one = Expression::new_number(1);
+    //let two = Expression::new_number(2);
+    //let var_x = Expression::new_variable("x".to_string());
+    //let var_y = Expression::new_variable("y".to_string());
 
-    let p = Expression::LessThan {
-        left: Box::new(Expression::new_add(one, var_x)),
-        right: Box::new(Expression::new_mul(two, var_y))
+    //let p = Expression::LessThan {
+    //    left: Box::new(Expression::new_add(one, var_x)),
+    //    right: Box::new(Expression::new_mul(two, var_y))
+    //};
+
+    //let mut env = HashMap::new();
+    //env.insert("x".to_string(), Expression::new_number(10));
+    //env.insert("y".to_string(), Expression::new_number(88));
+
+    //let mut m = Machine {
+    //    exp: p.clone()
+    //};
+
+    //let res = m.run(env);
+    //println!("{}", res.to_string());
+
+    //let if_s = Statement::If {
+    //    condition: Expression::Variable{name: "x".to_string()},
+    //    consequence: Box::new(Statement::Assign{
+    //        name: "y".to_string(),
+    //        exp: Expression::new_number(1)
+    //    }),
+    //    alternative: Box::new(Statement::Assign{
+    //        name: "y".to_string(),
+    //        exp: Expression::new_number(2)
+    //    })
+    //};
+    let while_s = Statement::While {
+        condition: Expression::LessThan{
+            left: Box::new(Expression::new_variable("x".to_string())),
+            right: Box::new(Expression::new_number(5))
+        },
+        body: Box::new(Statement::Assign{
+            name: "x".to_string(),
+            exp: Expression::new_mul(
+                Expression::new_variable("x".to_string()),
+                Expression::new_number(3)
+            )
+        })
     };
-
-    let mut env = HashMap::new();
-    env.insert("x".to_string(), Expression::new_number(10));
-    env.insert("y".to_string(), Expression::new_number(88));
-
-    let mut m = Machine {
-        exp: p.clone()
+    let assigns = Statement::Sequence{
+        first: Box::new(Statement::Assign{
+            name: "c".to_string(),
+            exp: Expression::new_number(0)
+        }),
+        second: Box::new(Statement::Assign{
+            name: "r".to_string(),
+            exp: Expression::new_number(1)
+        })
     };
-
-    let res = m.run(env);
-    println!("{}", res.to_string());
+    let power_of_two = Statement::Sequence{
+        first: Box::new(assigns),
+        second: Box::new(Statement::While{
+            condition: Expression::LessThan{
+                left: Box::new(Expression::new_variable("c".to_string())),
+                right: Box::new(Expression::new_number(5))
+            },
+            body: Box::new(Statement::Sequence{
+                first: Box::new(Statement::Assign{
+                    name: "r".to_string(),
+                    exp: Expression::new_mul(
+                        Expression::new_variable("r".to_string()),
+                        Expression::new_number(2)
+                    )
+                }),
+                second: Box::new(Statement::Assign{
+                    name: "c".to_string(),
+                    exp: Expression::new_add(
+                        Expression::new_variable("c".to_string()),
+                        Expression::new_number(1)
+                    )
+                }),
+            })
+        })
+    };
+    let env = HashMap::new();
+    //env.insert("x".to_string(), Expression::new_number(1));
+    let mut sm = StatementMachine{
+        stm: power_of_two,
+        env: env
+    };
+    let r = sm.run();
+    for (k, v) in &r {
+        println!("{}: {}", k, v.to_string());
+    }
 }
 
 type Enviroment = HashMap<String, Expression>;
@@ -49,10 +119,17 @@ struct StatementMachine {
 }
 
 impl StatementMachine {
-    fn step(&mut self, env: &mut Enviroment) {
-        let (stm, env) = self.stm.clone().reduce(env);
+    fn step(&mut self) {
+        println!("{}", self.stm.to_string());
+        let (stm, env) = self.stm.clone().reduce(&self.env);
         self.stm = stm;
         self.env = env;
+    }
+    fn run(&mut self) -> Enviroment {
+        while self.stm.reducible() {
+            self.step();
+        }
+        return self.env.clone()
     }
 }
 
@@ -62,6 +139,19 @@ enum Statement {
     Assign {
         name: String,
         exp: Expression
+    },
+    If {
+        condition: Expression,
+        consequence: Box<Statement>,
+        alternative: Box<Statement>
+    },
+    Sequence {
+        first: Box<Statement>,
+        second: Box<Statement>
+    },
+    While {
+        condition: Expression,
+        body: Box<Statement>
     }
 }
 
@@ -69,7 +159,13 @@ impl Statement {
     fn to_string(&self) -> String {
         match self {
             Statement::DoNothing => "do-nothing".to_string(),
-            Statement::Assign {name, exp} => name.to_string() + " = " + &exp.to_string()
+            Statement::Assign {name, exp} => name.to_string() + " = " + &exp.to_string(),
+            Statement::If {condition, consequence, alternative} => "If ".to_string() +
+                &condition.to_string() + &" { ".to_string() + &consequence.to_string() +
+                &" } else { ".to_string() + &alternative.to_string() + &" }".to_string(),
+            Statement::Sequence {first, second} => first.to_string() + &"; ".to_string() + &second.to_string(),
+            Statement::While {condition, body} => "While { ".to_string() +
+                &condition.to_string() + " } { " + &body.to_string() + &" }".to_string()
         }
     }
 
@@ -80,18 +176,64 @@ impl Statement {
         }
     }
 
-    fn reduce<'a>(&'a self, env: &'a mut Enviroment) -> (Statement, Enviroment){
+    fn reduce(self, env: &Enviroment) -> (Statement, Enviroment){
         match self {
             Statement::Assign { name, exp } => {
                 if exp.reducible() {
                     (Statement::Assign{
                         name: name.to_string(),
-                        exp: exp.reduce(&env.clone())
+                        exp: exp.reduce(&env)
                     }, env.clone())
                 } else {
-                    env.insert(name.to_string(), exp.clone());
-                    (Statement::DoNothing, env.clone())
+                    let mut new_env = env.clone();
+                    new_env.insert(name.to_string(), exp.clone());
+                    (Statement::DoNothing, new_env)
                 }
+            },
+            Statement::If {condition, consequence, alternative} => {
+                if condition.reducible() {
+                    (Statement::If{
+                        condition: condition.reduce(&env),
+                        consequence: consequence,
+                        alternative: alternative
+                    }, env.clone())
+                } else {
+                    match condition {
+                        Expression::Boolean { value } => match value {
+                            true => (consequence.as_ref().clone(), env.clone()),
+                            false => (alternative.as_ref().clone(), env.clone())
+                        },
+                        _ => unreachable!()
+                    }
+                }
+            },
+            Statement::Sequence {first, second} => {
+                match first.as_ref() {
+                    Statement::DoNothing => {
+                        let (s_stm, s_env) = second.reduce(&env);
+                        (s_stm, s_env)
+                    },
+                    _ => {
+                        let (f_stm, f_env) = first.reduce(&env);
+                        (Statement::Sequence{
+                            first: Box::new(f_stm),
+                            second: second
+                        }, f_env)
+                    }
+                }
+            },
+            Statement::While {condition, body} => {
+                (Statement::If{
+                    condition: condition.clone(),
+                    consequence: Box::new(Statement::Sequence{
+                        first: body.clone(),
+                        second: Box::new(Statement::While{
+                            condition: condition.clone(),
+                            body: body.clone()
+                        })
+                    }),
+                    alternative: Box::new(Statement::DoNothing)
+                }, env.clone())
             },
             Statement::DoNothing => (Statement::DoNothing, env.clone())
         }
