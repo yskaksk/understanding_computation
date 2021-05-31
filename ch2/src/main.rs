@@ -50,7 +50,7 @@ struct StatementMachine {
 
 impl StatementMachine {
     fn step(&mut self, env: &mut Enviroment) {
-        (stm, env) = self.stm.clone().reduce(env);
+        let (stm, env) = self.stm.clone().reduce(env);
         self.stm = stm;
         self.env = env;
     }
@@ -80,20 +80,20 @@ impl Statement {
         }
     }
 
-    fn reduce<'a>(&self, env: &'a mut Enviroment) -> (Statement, &'a mut Enviroment){
+    fn reduce<'a>(&'a self, env: &'a mut Enviroment) -> (Statement, Enviroment){
         match self {
             Statement::Assign { name, exp } => {
                 if exp.reducible() {
                     (Statement::Assign{
                         name: name.to_string(),
                         exp: exp.reduce(&env.clone())
-                    }, env)
+                    }, env.clone())
                 } else {
                     env.insert(name.to_string(), exp.clone());
-                    (Statement::DoNothing, env)
+                    (Statement::DoNothing, env.clone())
                 }
             },
-            Statement::DoNothing => (Statement::DoNothing, env)
+            Statement::DoNothing => (Statement::DoNothing, env.clone())
         }
     }
 }
@@ -121,10 +121,10 @@ impl Expression {
     fn to_string(&self) -> String {
         match self {
             Expression::Number { value } => value.to_string(),
-            Expression::Add { left, right } => left.to_string().to_string() + " + " + &right.to_string(),
-            Expression::Multiply { left, right } => left.to_string().to_string() + " * " + &right.to_string(),
+            Expression::Add { left, right } => left.to_string() + " + " + &right.to_string(),
+            Expression::Multiply { left, right } => left.to_string() + " * " + &right.to_string(),
             Expression::Boolean { value } => value.to_string(),
-            Expression::LessThan {left, right} => left.to_string().to_string() + " < " + &right.to_string(),
+            Expression::LessThan {left, right} => left.to_string() + " < " + &right.to_string(),
             Expression::Variable { name } => name.to_string()
         }
     }
