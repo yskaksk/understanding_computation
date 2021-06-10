@@ -53,6 +53,33 @@ impl Expression {
         }
     }
 
+    pub fn evaluate(self, env: &Environment) -> Expression {
+        match self {
+            Number(_) => self,
+            Boolean(_) => self,
+            Add { left, right } => {
+                let eval_l = left.evaluate(env);
+                let eval_r = right.evaluate(env);
+                Number(eval_l.get_number().unwrap() + eval_r.get_number().unwrap())
+            },
+            Multiply { left, right } => {
+                let eval_l = left.evaluate(env);
+                let eval_r = right.evaluate(env);
+                Number(eval_l.get_number().unwrap() * eval_r.get_number().unwrap())
+            },
+            LessThan { left, right } => {
+                let eval_l = left.evaluate(env);
+                let eval_r = right.evaluate(env);
+                Boolean(eval_l.get_number().unwrap() < eval_r.get_number().unwrap())
+            },
+            Variable(name) => {
+                env.get(&name)
+                    .expect(&format!("variable {} does not exist", name))
+                    .clone()
+            }
+        }
+    }
+
     pub fn get_number(&self) -> Result<i32, String> {
         match self {
             Number(value) => Ok(value.clone()),
@@ -270,5 +297,37 @@ mod tests {
         assert!(a.reducible());
         assert!(m.reducible());
         assert!(lt.reducible());
+    }
+
+    #[test]
+    fn test_evaluate() {
+        let env = Expression::new_env();
+        let n = Number(43);
+        let b = Boolean(true);
+        // 3 + (4 * 5)
+        let a = Add {
+            left: Box::new(Number(3)),
+            right: Box::new(Multiply {
+                left: Box::new(Number(4)),
+                right: Box::new(Number(5))
+            })
+        };
+        // 3 * (4 + 5)
+        let m = Multiply {
+            left: Box::new(Number(3)),
+            right: Box::new(Add {
+                left: Box::new(Number(4)),
+                right: Box::new(Number(5))
+            })
+        };
+        let lt = LessThan {
+            left: Box::new(Number(3)),
+            right: Box::new(Number(4)),
+        };
+        assert_eq!(n.evaluate(&env), Number(43));
+        assert_eq!(b.evaluate(&env), Boolean(true));
+        assert_eq!(a.evaluate(&env), Number(23));
+        assert_eq!(m.evaluate(&env), Number(27));
+        assert_eq!(lt.evaluate(&env), Boolean(true));
     }
 }
