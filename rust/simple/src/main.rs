@@ -1,5 +1,5 @@
 use simple::expression::Expression;
-use simple::expression::Expression::{Number, Boolean, LessThan, Variable};
+use simple::expression::Expression::{Boolean, LessThan, Number, Variable};
 use simple::functions::fibonacci_n;
 
 fn main() {
@@ -18,14 +18,20 @@ fn main() {
 
     let m = Expression::new_multiply(1, 2);
     println!("Multiply(1, 2) = {}", m.to_string());
-    println!("Multiply(1, 2).reduce(&env) = {}", m.reduce(&env).to_string());
+    println!(
+        "Multiply(1, 2).reduce(&env) = {}",
+        m.reduce(&env).to_string()
+    );
 
     let lt = LessThan {
         left: Box::new(Number(1)),
-        right: Box::new(Number(11))
+        right: Box::new(Number(11)),
     };
     println!("LessThan(1, 11) = {}", lt.to_string());
-    println!("LessThan(1, 11).reduce(&env) = {}", lt.reduce(&env).to_string());
+    println!(
+        "LessThan(1, 11).reduce(&env) = {}",
+        lt.reduce(&env).to_string()
+    );
 
     let v = Variable("x".to_string());
     println!("Variable(x) = {}", v.to_string());
