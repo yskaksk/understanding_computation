@@ -72,20 +72,18 @@ impl Statement {
             Assign { name, expression } => {
                 env.insert(name, expression.evaluate(env));
                 env.clone()
-            },
+            }
             If {
                 condition,
                 consequence,
                 alternative,
-            } => {
-                match condition.evaluate(env) {
-                    Expression::Boolean(true) => consequence.evaluate(env),
-                    Expression::Boolean(false) => alternative.evaluate(env),
-                    _ => unreachable!()
-                }
+            } => match condition.evaluate(env) {
+                Expression::Boolean(true) => consequence.evaluate(env),
+                Expression::Boolean(false) => alternative.evaluate(env),
+                _ => unreachable!(),
             },
             While { condition, body } => evaluate_while(condition, *body, env),
-            Sequence { first, second } => second.evaluate(&mut first.evaluate(env))
+            Sequence { first, second } => second.evaluate(&mut first.evaluate(env)),
         }
     }
 }
@@ -166,14 +164,12 @@ fn evaluate_while(cond: Expression, body: Statement, env: &mut Environment) -> E
         Expression::Boolean(true) => {
             let while_s = While {
                 condition: cond.clone(),
-                body: Box::new(body.clone())
+                body: Box::new(body.clone()),
             };
             while_s.evaluate(&mut body.evaluate(env))
-        },
-        Expression::Boolean(false) => {
-            env.clone()
-        },
-        _ => unreachable!()
+        }
+        Expression::Boolean(false) => env.clone(),
+        _ => unreachable!(),
     }
 }
 
@@ -369,9 +365,9 @@ mod tests {
             condition: Expression::Boolean(true),
             consequence: Box::new(Assign {
                 name: "x".to_string(),
-                expression: Expression::Number(999)
+                expression: Expression::Number(999),
             }),
-            alternative: Box::new(DoNothing)
+            alternative: Box::new(DoNothing),
         };
         let mut expected = Expression::new_env();
         expected.insert("x".to_string(), Expression::Number(999));
@@ -381,20 +377,20 @@ mod tests {
             condition: Expression::Boolean(false),
             body: Box::new(Assign {
                 name: "x".to_string(),
-                expression: Expression::Number(1)
-            })
+                expression: Expression::Number(1),
+            }),
         };
         assert_eq!(while_s.evaluate(&mut env), env);
 
         let seq = Sequence {
             first: Box::new(Assign {
                 name: "x".to_string(),
-                expression: Expression::Number(1)
+                expression: Expression::Number(1),
             }),
             second: Box::new(Assign {
                 name: "x".to_string(),
-                expression: Expression::Number(999)
-            })
+                expression: Expression::Number(999),
+            }),
         };
         let mut expected = Expression::new_env();
         expected.insert("x".to_string(), Expression::Number(999));

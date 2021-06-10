@@ -61,22 +61,21 @@ impl Expression {
                 let eval_l = left.evaluate(env);
                 let eval_r = right.evaluate(env);
                 Number(eval_l.get_number().unwrap() + eval_r.get_number().unwrap())
-            },
+            }
             Multiply { left, right } => {
                 let eval_l = left.evaluate(env);
                 let eval_r = right.evaluate(env);
                 Number(eval_l.get_number().unwrap() * eval_r.get_number().unwrap())
-            },
+            }
             LessThan { left, right } => {
                 let eval_l = left.evaluate(env);
                 let eval_r = right.evaluate(env);
                 Boolean(eval_l.get_number().unwrap() < eval_r.get_number().unwrap())
-            },
-            Variable(name) => {
-                env.get(&name)
-                    .expect(&format!("variable {} does not exist", name))
-                    .clone()
             }
+            Variable(name) => env
+                .get(&name)
+                .expect(&format!("variable {} does not exist", name))
+                .clone(),
         }
     }
 
@@ -309,16 +308,16 @@ mod tests {
             left: Box::new(Number(3)),
             right: Box::new(Multiply {
                 left: Box::new(Number(4)),
-                right: Box::new(Number(5))
-            })
+                right: Box::new(Number(5)),
+            }),
         };
         // 3 * (4 + 5)
         let m = Multiply {
             left: Box::new(Number(3)),
             right: Box::new(Add {
                 left: Box::new(Number(4)),
-                right: Box::new(Number(5))
-            })
+                right: Box::new(Number(5)),
+            }),
         };
         let lt = LessThan {
             left: Box::new(Number(3)),
