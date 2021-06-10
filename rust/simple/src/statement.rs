@@ -66,6 +66,28 @@ impl Statement {
             Sequence { first, second } => reduce_sequence(*first, *second, env),
         }
     }
+    pub fn evaluate(self, env: &mut Environment) -> Environment {
+        match self {
+            DoNothing => env.clone(),
+            Assign { name, expression } => {
+                env.insert(name, expression.evaluate(env));
+                env.clone()
+            },
+            If {
+                condition,
+                consequence,
+                alternative,
+            } => {
+                match condition.evaluate(env) {
+                    Expression::Boolean(true) => consequence.evaluate(env),
+                    Expression::Boolean(false) => alternative.evaluate(env),
+                    _ => unreachable!()
+                }
+            },
+            While { condition, body } => evaluate_while(condition, *body, env),
+            Sequence { first, second } => second.evaluate(&mut first.evaluate(env))
+        }
+    }
 }
 
 fn reduce_assign(name: String, exp: Expression, env: &mut Environment) -> (Statement, Environment) {
@@ -139,6 +161,22 @@ fn reduce_sequence(f: Statement, s: Statement, env: &mut Environment) -> (Statem
     }
 }
 
+fn evaluate_while(cond: Expression, body: Statement, env: &mut Environment) -> Environment {
+    match cond.clone().evaluate(env) {
+        Expression::Boolean(true) => {
+            let while_s = While {
+                condition: cond.clone(),
+                body: Box::new(body.clone())
+            };
+            while_s.evaluate(&mut body.evaluate(env))
+        },
+        Expression::Boolean(false) => {
+            env.clone()
+        },
+        _ => unreachable!()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Machine {
     pub statement: Statement,
@@ -158,6 +196,11 @@ impl Machine {
         while self.statement.reducible() {
             self.step();
         }
+    }
+
+    pub fn evaluate(self) -> Environment {
+        let mut env = self.environment.clone();
+        self.statement.evaluate(&mut env)
     }
 }
 
@@ -308,6 +351,54 @@ mod tests {
         env.insert("x".to_string(), Expression::Number(1));
         assert_eq!(reduced, expected);
         assert_eq!(new_env, env);
+    }
+
+    #[test]
+    fn test_evaluate() {
+        let mut env = Expression::new_env();
+        let assign = Assign {
+            name: "x".to_string(),
+            expression: Expression::Number(11),
+        };
+        let mut expected = Expression::new_env();
+        expected.insert("x".to_string(), Expression::Number(11));
+        assert_eq!(DoNothing.evaluate(&mut env), env);
+        assert_eq!(assign.evaluate(&mut env), expected);
+
+        let if_s = If {
+            condition: Expression::Boolean(true),
+            consequence: Box::new(Assign {
+                name: "x".to_string(),
+                expression: Expression::Number(999)
+            }),
+            alternative: Box::new(DoNothing)
+        };
+        let mut expected = Expression::new_env();
+        expected.insert("x".to_string(), Expression::Number(999));
+        assert_eq!(if_s.evaluate(&mut env), expected);
+
+        let while_s = While {
+            condition: Expression::Boolean(false),
+            body: Box::new(Assign {
+                name: "x".to_string(),
+                expression: Expression::Number(1)
+            })
+        };
+        assert_eq!(while_s.evaluate(&mut env), env);
+
+        let seq = Sequence {
+            first: Box::new(Assign {
+                name: "x".to_string(),
+                expression: Expression::Number(1)
+            }),
+            second: Box::new(Assign {
+                name: "x".to_string(),
+                expression: Expression::Number(999)
+            })
+        };
+        let mut expected = Expression::new_env();
+        expected.insert("x".to_string(), Expression::Number(999));
+        assert_eq!(seq.evaluate(&mut env), expected);
     }
 
     #[test]
