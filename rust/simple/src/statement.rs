@@ -47,12 +47,14 @@ impl Statement {
             Sequence { first, second } => format!("{}; {}", first.to_string(), second.to_string()),
         }
     }
+
     fn reducible(&self) -> bool {
         match self {
             DoNothing => false,
             _ => true,
         }
     }
+
     fn reduce(self, env: &mut Environment) -> (Statement, Environment) {
         match self {
             DoNothing => unreachable!(),
@@ -66,6 +68,7 @@ impl Statement {
             Sequence { first, second } => reduce_sequence(*first, *second, env),
         }
     }
+
     pub fn evaluate(self, env: &mut Environment) -> Environment {
         match self {
             DoNothing => env.clone(),
@@ -86,6 +89,38 @@ impl Statement {
             Sequence { first, second } => second.evaluate(&mut first.evaluate(env)),
         }
     }
+
+    pub fn to_ruby(&self) -> String {
+        match self {
+            DoNothing => "-> e { e }".to_string(),
+            Assign { name, expression } => format!(
+                "-> e {{ e.merge({} => ({}).call(e)) }}",
+                name.to_string(),
+                expression.to_ruby()
+            ),
+            If {
+                condition,
+                consequence,
+                alternative,
+            } => format!(
+                "-> e {{ if ({}).call(e) then ({}).call(e) else ({}).call(e) end }}",
+                condition.to_ruby(),
+                consequence.to_ruby(),
+                alternative.to_ruby()
+            ),
+            Sequence { first, second } => format!(
+                "-> e {{ ({}).call(({}).call(e)) }}",
+                second.to_ruby(),
+                first.to_ruby()
+            ),
+            While { condition, body } => format!(
+                "-> e {{ while ({}).call(e); e = ({}).call(e); end; e }}",
+                condition.to_ruby(),
+                body.to_ruby()
+            ),
+        }
+    }
+
     pub fn new_assign<T: ToString>(name: T, expression: Expression) -> Statement {
         Assign {
             name: name.to_string(),
