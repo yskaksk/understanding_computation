@@ -2,12 +2,17 @@
 struct FARule {
     state: i32,
     character: char,
-    next_state: i32
+    next_state: i32,
 }
 
 impl FARule {
     fn inspect(&self) -> String {
-        format!("#<FARule #{} --#{}--> #{}>", self.state.to_string(), self.character.to_string(), self.next_state.to_string())
+        format!(
+            "#<FARule #{} --#{}--> #{}>",
+            self.state.to_string(),
+            self.character.to_string(),
+            self.next_state.to_string()
+        )
     }
 
     fn follow(&self) -> i32 {
@@ -21,7 +26,7 @@ impl FARule {
 
 #[derive(Clone, Debug, PartialEq)]
 struct DFARuleBook {
-    rules: Vec<FARule>
+    rules: Vec<FARule>,
 }
 
 impl DFARuleBook {
@@ -30,7 +35,11 @@ impl DFARuleBook {
     }
 
     fn rule_for(&self, state: i32, character: char) -> FARule {
-        let filtered: Vec<&FARule> = self.rules.iter().filter(|fr| fr.applies_to(state, character)).collect();
+        let filtered: Vec<&FARule> = self
+            .rules
+            .iter()
+            .filter(|fr| fr.applies_to(state, character))
+            .collect();
         if filtered.len() != 1 {
             unreachable!()
         } else {
@@ -51,7 +60,7 @@ impl DFARuleBook {
 struct DFA {
     current_state: i32,
     accept_states: Vec<i32>,
-    rulebook: DFARuleBook
+    rulebook: DFARuleBook,
 }
 
 impl DFA {
@@ -75,7 +84,7 @@ impl DFA {
 struct DFADesign {
     start_state: i32,
     accept_states: Vec<i32>,
-    rulebook: DFARuleBook
+    rulebook: DFARuleBook,
 }
 
 impl DFADesign {
@@ -83,7 +92,7 @@ impl DFADesign {
         DFA {
             current_state: self.start_state,
             accept_states: self.accept_states.clone(),
-            rulebook: self.rulebook.clone()
+            rulebook: self.rulebook.clone(),
         }
     }
 
@@ -95,19 +104,38 @@ impl DFADesign {
 
 fn main() {
     let rulebook = DFARuleBook {
-        rules: vec![FARule {
-            state: 1, character: 'a', next_state: 2
-        }, FARule {
-            state: 1, character: 'b', next_state: 1
-        }, FARule {
-            state: 2, character: 'a', next_state: 2
-        }, FARule {
-            state: 2, character: 'b', next_state: 3
-        }, FARule {
-            state: 3, character: 'a', next_state: 3
-        }, FARule {
-            state: 3, character: 'b', next_state: 3
-        }]
+        rules: vec![
+            FARule {
+                state: 1,
+                character: 'a',
+                next_state: 2,
+            },
+            FARule {
+                state: 1,
+                character: 'b',
+                next_state: 1,
+            },
+            FARule {
+                state: 2,
+                character: 'a',
+                next_state: 2,
+            },
+            FARule {
+                state: 2,
+                character: 'b',
+                next_state: 3,
+            },
+            FARule {
+                state: 3,
+                character: 'a',
+                next_state: 3,
+            },
+            FARule {
+                state: 3,
+                character: 'b',
+                next_state: 3,
+            },
+        ],
     };
     println!("{}", rulebook.inspect());
     println!("(1, 'a') -> {}", rulebook.next_state(1, 'a'));
@@ -117,7 +145,7 @@ fn main() {
     let mut dfa = DFA {
         current_state: 1,
         accept_states: vec![3],
-        rulebook: rulebook.clone()
+        rulebook: rulebook.clone(),
     };
     dfa.read_string(String::from("baaab"));
     println!("dfa.accepting() -> {}", dfa.accepting());
@@ -125,9 +153,18 @@ fn main() {
     let dfa_design = DFADesign {
         start_state: 1,
         accept_states: vec![3],
-        rulebook: rulebook.clone()
+        rulebook: rulebook.clone(),
     };
-    println!("dfa_design.accepts('a') -> {}", dfa_design.accepts(String::from("a")));
-    println!("dfa_design.accepts('baa') -> {}", dfa_design.accepts(String::from("baa")));
-    println!("dfa_design.accepts('baba') -> {}", dfa_design.accepts(String::from("baba")));
+    println!(
+        "dfa_design.accepts('a') -> {}",
+        dfa_design.accepts(String::from("a"))
+    );
+    println!(
+        "dfa_design.accepts('baa') -> {}",
+        dfa_design.accepts(String::from("baa"))
+    );
+    println!(
+        "dfa_design.accepts('baba') -> {}",
+        dfa_design.accepts(String::from("baba"))
+    );
 }
