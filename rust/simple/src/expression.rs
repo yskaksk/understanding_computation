@@ -111,6 +111,10 @@ impl Expression {
         let env: Environment = HashMap::new();
         return env;
     }
+
+    pub fn new_var<T: ToString>(name: T) -> Expression {
+        Variable(name.to_string())
+    }
 }
 
 fn reduce_add(left: Expression, right: Expression, env: &Environment) -> Expression {

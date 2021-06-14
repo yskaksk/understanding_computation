@@ -86,15 +86,17 @@ impl Statement {
             Sequence { first, second } => second.evaluate(&mut first.evaluate(env)),
         }
     }
+    pub fn new_assign<T: ToString>(name: T, expression: Expression) -> Statement {
+        Assign {
+            name: name.to_string(),
+            expression,
+        }
+    }
 }
 
 fn reduce_assign(name: String, exp: Expression, env: &mut Environment) -> (Statement, Environment) {
     if exp.reducible() {
-        let a = Assign {
-            name: name.to_string(),
-            expression: exp.reduce(env),
-        };
-        (a, env.clone())
+        (Statement::new_assign(name, exp.reduce(env)), env.clone())
     } else {
         env.insert(name.to_string(), exp.clone());
         (DoNothing, env.clone())
@@ -203,82 +205,60 @@ impl Machine {
 #[cfg(test)]
 mod tests {
     use super::Expression;
+    use super::Expression::Number;
     use super::Machine;
-    use super::{Assign, DoNothing, If, Sequence, While};
+    use super::Statement;
+    use super::{DoNothing, If, Sequence, While};
 
     #[test]
     fn test_to_string() {
         let dn = DoNothing;
         assert_eq!(dn.to_string(), "do-nothing".to_string());
 
-        let assign = Assign {
-            name: "x".to_string(),
-            expression: Expression::new_add(1, 2),
-        };
+        let assign = Statement::new_assign("x", Expression::new_add(1, 2));
         assert_eq!(assign.to_string(), "x = 1 + 2".to_string());
 
         let if_s = If {
             condition: Expression::Boolean(true),
-            consequence: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(1),
-            }),
+            consequence: Box::new(Statement::new_assign("x", Number(1))),
             alternative: Box::new(DoNothing),
         };
         assert_eq!(if_s.to_string(), "If true { x = 1 } else { do-nothing }");
 
         let while_s = While {
             condition: Expression::Boolean(true),
-            body: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(22),
-            }),
+            body: Box::new(Statement::new_assign("x", Number(22))),
         };
         assert_eq!(while_s.to_string(), "While { true } { x = 22 }");
 
         let seq = Sequence {
-            first: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(11),
-            }),
-            second: Box::new(Assign {
-                name: "y".to_string(),
-                expression: Expression::Number(22),
-            }),
+            first: Box::new(Statement::new_assign("x", Number(11))),
+            second: Box::new(Statement::new_assign("y", Number(22))),
         };
         assert_eq!(seq.to_string(), "x = 11; y = 22");
     }
 
     #[test]
     fn test_reduce() {
-        let assign1 = Assign {
-            name: "x".to_string(),
-            expression: Expression::Number(1),
-        };
+        let assign1 = Statement::new_assign("x", Number(1));
         let mut env = Expression::new_env();
         let (reduced, new_env) = assign1.reduce(&mut env);
         let mut expected_env = Expression::new_env();
-        expected_env.insert("x".to_string(), Expression::Number(1));
+        expected_env.insert("x".to_string(), Number(1));
         assert_eq!(reduced, DoNothing);
         assert_eq!(new_env, expected_env);
 
-        let assign2 = Assign {
-            name: "x".to_string(),
-            expression: Expression::new_add(1, 2),
-        };
+        let assign2 = Statement::new_assign("x", Expression::new_add(1, 2));
         let mut env = Expression::new_env();
         let (reduced, new_env) = assign2.reduce(&mut env);
-        let expected = Assign {
-            name: "x".to_string(),
-            expression: Expression::Number(3),
-        };
+        let expected = Statement::new_assign("x", Number(3));
         assert_eq!(reduced, expected);
         assert_eq!(new_env, env);
 
         let if_1 = If {
             condition: Expression::LessThan {
-                left: Box::new(Expression::Number(1)),
-                right: Box::new(Expression::Number(22)),
+                left: Box::new(Number(1)),
+                right: Box::new(Number(22)),
             },
             consequence: Box::new(DoNothing),
             alternative: Box::new(DoNothing),
@@ -295,25 +275,16 @@ mod tests {
 
         let if_2 = If {
             condition: Expression::Boolean(true),
-            consequence: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(1),
-            }),
+            consequence: Box::new(Statement::new_assign("x", Number(1))),
             alternative: Box::new(DoNothing),
         };
         let mut env = Expression::new_env();
         let (reduced, new_env) = if_2.reduce(&mut env);
-        let expected = Assign {
-            name: "x".to_string(),
-            expression: Expression::Number(1),
-        };
+        let expected = Statement::new_assign("x", Number(1));
         assert_eq!(reduced, expected);
         assert_eq!(new_env, env);
 
-        let body = Box::new(Assign {
-            name: "x".to_string(),
-            expression: Expression::Number(1),
-        });
+        let body = Box::new(Statement::new_assign("x", Number(1)));
         let while_s = While {
             condition: Expression::Boolean(true),
             body: body.clone(),
@@ -336,15 +307,12 @@ mod tests {
 
         let seq_1 = Sequence {
             first: Box::new(DoNothing),
-            second: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(1),
-            }),
+            second: Box::new(Statement::new_assign("x", Number(1))),
         };
         let mut env = Expression::new_env();
         let (reduced, new_env) = seq_1.reduce(&mut env);
         let expected = DoNothing;
-        env.insert("x".to_string(), Expression::Number(1));
+        env.insert("x".to_string(), Number(1));
         assert_eq!(reduced, expected);
         assert_eq!(new_env, env);
     }
@@ -352,48 +320,33 @@ mod tests {
     #[test]
     fn test_evaluate() {
         let mut env = Expression::new_env();
-        let assign = Assign {
-            name: "x".to_string(),
-            expression: Expression::Number(11),
-        };
+        let assign = Statement::new_assign("x", Number(11));
         let mut expected = Expression::new_env();
-        expected.insert("x".to_string(), Expression::Number(11));
+        expected.insert("x".to_string(), Number(11));
         assert_eq!(DoNothing.evaluate(&mut env), env);
         assert_eq!(assign.evaluate(&mut env), expected);
 
         let if_s = If {
             condition: Expression::Boolean(true),
-            consequence: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(999),
-            }),
+            consequence: Box::new(Statement::new_assign("x", Number(999))),
             alternative: Box::new(DoNothing),
         };
         let mut expected = Expression::new_env();
-        expected.insert("x".to_string(), Expression::Number(999));
+        expected.insert("x".to_string(), Number(999));
         assert_eq!(if_s.evaluate(&mut env), expected);
 
         let while_s = While {
             condition: Expression::Boolean(false),
-            body: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(1),
-            }),
+            body: Box::new(Statement::new_assign("x", Number(1))),
         };
         assert_eq!(while_s.evaluate(&mut env), env);
 
         let seq = Sequence {
-            first: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(1),
-            }),
-            second: Box::new(Assign {
-                name: "x".to_string(),
-                expression: Expression::Number(999),
-            }),
+            first: Box::new(Statement::new_assign("x", Number(1))),
+            second: Box::new(Statement::new_assign("x", Number(999))),
         };
         let mut expected = Expression::new_env();
-        expected.insert("x".to_string(), Expression::Number(999));
+        expected.insert("x".to_string(), Number(999));
         assert_eq!(seq.evaluate(&mut env), expected);
     }
 
@@ -401,21 +354,15 @@ mod tests {
     fn test_machine() {
         let mut m = Machine {
             statement: Sequence {
-                first: Box::new(Assign {
-                    name: "x".to_string(),
-                    expression: Expression::Number(1),
-                }),
-                second: Box::new(Assign {
-                    name: "y".to_string(),
-                    expression: Expression::Number(2),
-                }),
+                first: Box::new(Statement::new_assign("x", Number(1))),
+                second: Box::new(Statement::new_assign("y", Number(2))),
             },
             environment: Expression::new_env(),
         };
         m.run();
         let mut new_env = Expression::new_env();
-        new_env.insert("x".to_string(), Expression::Number(1));
-        new_env.insert("y".to_string(), Expression::Number(2));
+        new_env.insert("x".to_string(), Number(1));
+        new_env.insert("y".to_string(), Number(2));
         let expected = Machine {
             statement: DoNothing,
             environment: new_env,
