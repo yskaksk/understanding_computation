@@ -1,6 +1,7 @@
 use simple::expression::Expression;
-use simple::expression::Expression::{Boolean, LessThan, Number, Variable};
+use simple::expression::Expression::{Add, Boolean, LessThan, Number, Variable};
 use simple::functions::fibonacci_n;
+use simple::statement::Statement::{Assign, While};
 
 fn main() {
     let mut env = Expression::new_env();
@@ -39,4 +40,40 @@ fn main() {
 
     let f_10 = fibonacci_n(10);
     println!("10th fibonacci number is {}", f_10);
+
+    println!("");
+    println!("to_ruby: Expression");
+    println!("");
+    let lt = LessThan {
+        left: Box::new(Add {
+            left: Box::new(Expression::new_var("x")),
+            right: Box::new(Number(1)),
+        }),
+        right: Box::new(Number(3)),
+    };
+    println!("let lt = LessThan {{");
+    println!("    left: Box::new(Add {{");
+    println!("        left: Box::new(Expression::new_var(\"x\")),");
+    println!("        right: Box::new(Number(1)),");
+    println!("}}),");
+    println!("right: Box::new(Number(3)),");
+    println!("}};");
+    println!("lt.to_ruby()");
+    println!("{}", lt.to_ruby());
+
+    println!("to_ruby: Statement");
+    let st = While {
+        condition: LessThan {
+            left: Box::new(Expression::new_var("x")),
+            right: Box::new(Number(3)),
+        },
+        body: Box::new(Assign {
+            name: "x".to_string(),
+            expression: Expression::Multiply {
+                left: Box::new(Expression::new_var("x")),
+                right: Box::new(Number(3)),
+            },
+        }),
+    };
+    println!("{}", st.to_ruby());
 }

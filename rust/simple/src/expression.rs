@@ -79,6 +79,28 @@ impl Expression {
         }
     }
 
+    pub fn to_ruby(&self) -> String {
+        match self {
+            Number(_) | Boolean(_) => format!("-> e {{ {} }}", self.to_string()),
+            Variable(name) => format!("-> e {{ e[{}] }}", name.to_string()),
+            Add { left, right } => format!(
+                "-> e {{ ({}).call(e) + ({}).call(e) }}",
+                left.to_ruby(),
+                right.to_ruby()
+            ),
+            Multiply { left, right } => format!(
+                "-> e {{ ({}).call(e) * ({}).call(e) }}",
+                left.to_ruby(),
+                right.to_ruby()
+            ),
+            LessThan { left, right } => format!(
+                "-> e {{ ({}).call(e) < ({}).call(e) }}",
+                left.to_ruby(),
+                right.to_ruby()
+            ),
+        }
+    }
+
     pub fn get_number(&self) -> Result<i32, String> {
         match self {
             Number(value) => Ok(value.clone()),
