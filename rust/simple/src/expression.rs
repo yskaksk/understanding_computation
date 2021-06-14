@@ -82,7 +82,7 @@ impl Expression {
     pub fn to_ruby(&self) -> String {
         match self {
             Number(_) | Boolean(_) => format!("-> e {{ {} }}", self.to_string()),
-            Variable(name) => format!("-> e {{ e[{}] }}", name.to_string()),
+            Variable(name) => format!("-> e {{ e[:{}] }}", name.to_string()),
             Add { left, right } => format!(
                 "-> e {{ ({}).call(e) + ({}).call(e) }}",
                 left.to_ruby(),
