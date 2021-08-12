@@ -32,8 +32,7 @@ impl FARule {
     }
 
     fn applies_to(&self, state: i32, character: char) -> bool {
-        ((self.state == state) && (self.character == character))
-            || ((self.state == state) && self.character == '\u{029e}')
+        (self.state == state) && (self.character == character)
     }
 }
 
@@ -263,17 +262,10 @@ impl Pattern {
                 accept_states.extend(second_nfa_design.accept_states.clone());
                 let mut rules = first_nfa_design.rulebook.rules.clone();
                 rules.append(&mut second_nfa_design.rulebook.rules.clone());
-                let mut extra_rules: Vec<FARule> = first_nfa_design
-                    .accept_states
-                    .clone()
-                    .iter()
-                    .chain(second_nfa_design.accept_states.clone().iter())
-                    .map(|state| FARule {
-                        state: start_state,
-                        character: '\u{029e}',
-                        next_state: *state,
-                    })
-                    .collect();
+                let mut extra_rules: Vec<FARule> = vec![
+                    FARule::new(start_state, '\u{029e}', first_nfa_design.start_state),
+                    FARule::new(start_state, '\u{029e}', second_nfa_design.start_state)
+                ];
                 rules.append(&mut extra_rules);
                 let rulebook = NFARuleBook { rules: rules };
                 return NFADesign {
@@ -282,63 +274,104 @@ impl Pattern {
                     rulebook,
                 };
             }
-            _ => unimplemented!(),
+            Repeat(pat) => {
+                let pat_nfa_design = pat.to_nfa_design();
+
+                let start_state: i32 = rand::random();
+                let mut accept_states: HashSet<i32> = HashSet::new();
+                accept_states.extend(pat_nfa_design.accept_states.clone());
+                accept_states.insert(start_state);
+                let mut rules = pat_nfa_design.rulebook.rules.clone();
+                let mut extra_rules: Vec<FARule> = pat_nfa_design.accept_states.iter().map(|state| FARule {
+                    state: *state,
+                    character: '\u{029e}',
+                    next_state: pat_nfa_design.start_state
+                }).collect();
+                rules.append(&mut extra_rules);
+                rules.append(&mut vec![FARule{
+                    state: start_state,
+                    character: '\u{029e}',
+                    next_state: pat_nfa_design.start_state
+                }]);
+                let rulebook = NFARuleBook { rules: rules };
+                return NFADesign {
+                    start_state,
+                    accept_states,
+                    rulebook
+                };
+            }
         }
     }
 }
 
 fn main() {
-    //let pattern = Repeat(Box::new(Choose {
-    //    first: Box::new(Concatenate {
-    //        first: Box::new(Literal { character: 'a' }),
-    //        second: Box::new(Literal { character: 'b' }),
-    //    }),
-    //    second: Box::new(Literal { character: 'a' }),
-    //}));
-    //println!("{}", pattern.to_s());
+    let pattern = Empty;
+    println!("{}", pattern.to_s());
+    println!(" => {}", pattern.matches(String::from("")));
+    println!("a => {}", pattern.matches(String::from("a")));
 
-    //let pattern = Concatenate {
-    //    first: Box::new(Literal { character: 'a' }),
-    //    second: Box::new(Literal { character: 'b' }),
-    //};
-    //println!("{}", pattern.to_s());
-    //println!("{}", pattern.matches(String::from("ab")));
+    let pattern = Concatenate {
+        first: Box::new(Concatenate {
+            first: Box::new(Literal { character: 'a' }),
+            second: Box::new(Literal { character: 'b' }),
+        }),
+        second: Box::new(Literal { character: 'c' })
+    };
+    println!("{}", pattern.to_s());
+    println!("abc => {}", pattern.matches(String::from("abc")));
+    println!("a => {}", pattern.matches(String::from("ac")));
+    println!("abd => {}", pattern.matches(String::from("ac")));
 
     let pattern = Choose {
         first: Box::new(Literal { character: 'a' }),
         second: Box::new(Literal { character: 'b' })
     };
     println!("{}", pattern.to_s());
-    let nfa_design = pattern.to_nfa_design();
-    println!("start_state: {:?}", nfa_design.start_state);
-    println!("accept_states: {:?}", nfa_design.accept_states);
-    println!("rulebook: {:?}", nfa_design.rulebook);
     println!("a => {}", pattern.matches(String::from("a")));
     println!("b => {}", pattern.matches(String::from("b")));
     println!("c => {}", pattern.matches(String::from("c")));
 
-    //let nfa_design = Empty.to_nfa_design();
-    //println!(
-    //    "nfa_design.accept(''): {}",
-    //    nfa_design.accepts(String::from(""))
-    //);
-    //println!(
-    //    "nfa_design.accept('a'): {}",
-    //    nfa_design.accepts(String::from("a"))
-    //);
+    let pattern = Repeat(Box::new(Choose {
+        first: Box::new(Concatenate {
+            first: Box::new(Literal { character: 'a' }),
+            second: Box::new(Literal { character: 'b' }),
+        }),
+        second: Box::new(Literal { character: 'a' }),
+    }));
+    println!("{}", pattern.to_s());
+    println!("ab => {}", pattern.matches(String::from("ab")));
+    println!("abab => {}", pattern.matches(String::from("abab")));
+    println!("aba => {}", pattern.matches(String::from("aba")));
+    println!("aa => {}", pattern.matches(String::from("aa")));
+    println!("ac => {}", pattern.matches(String::from("ac")));
+    println!("ba => {}", pattern.matches(String::from("ba")));
+    println!("bb => {}", pattern.matches(String::from("bb")));
+    println!("abbb => {}", pattern.matches(String::from("abbb")));
 
-    //let lit = Literal { character: 'a' };
-    //let nfa_design = lit.to_nfa_design();
-    //println!(
-    //    "nfa_design.accept(''): {}",
-    //    nfa_design.accepts(String::from(""))
-    //);
-    //println!(
-    //    "nfa_design.accept('a'): {}",
-    //    nfa_design.accepts(String::from("a"))
-    //);
-    //println!(
-    //    "nfa_design.accept('b'): {}",
-    //    nfa_design.accepts(String::from("b"))
-    //);
+    let nfa_design = Empty.to_nfa_design();
+    println!(
+        "nfa_design.accept(''): {}",
+        nfa_design.accepts(String::from(""))
+    );
+    println!(
+        "nfa_design.accept('a'): {}",
+        nfa_design.accepts(String::from("a"))
+    );
+
+    println!("複雑なパターン");
+    let pattern = Repeat(Box::new(Concatenate {
+        first: Box::new(Literal {character: 'a'}),
+        second: Box::new(Choose {
+            first: Box::new(Empty),
+            second: Box::new(Literal {character: 'b'})
+        })
+    }));
+    println!("{}", pattern.to_s());
+    println!(" => {}", pattern.matches(String::from("")));
+    println!("a => {}", pattern.matches(String::from("a")));
+    println!("ab => {}", pattern.matches(String::from("ab")));
+    println!("aba => {}", pattern.matches(String::from("aba")));
+    println!("abab => {}", pattern.matches(String::from("abab")));
+    println!("abaab => {}", pattern.matches(String::from("abaab")));
+    println!("abba => {}", pattern.matches(String::from("abba")));
 }
