@@ -264,7 +264,7 @@ impl Pattern {
                 rules.append(&mut second_nfa_design.rulebook.rules.clone());
                 let mut extra_rules: Vec<FARule> = vec![
                     FARule::new(start_state, '\u{029e}', first_nfa_design.start_state),
-                    FARule::new(start_state, '\u{029e}', second_nfa_design.start_state)
+                    FARule::new(start_state, '\u{029e}', second_nfa_design.start_state),
                 ];
                 rules.append(&mut extra_rules);
                 let rulebook = NFARuleBook { rules: rules };
@@ -282,22 +282,26 @@ impl Pattern {
                 accept_states.extend(pat_nfa_design.accept_states.clone());
                 accept_states.insert(start_state);
                 let mut rules = pat_nfa_design.rulebook.rules.clone();
-                let mut extra_rules: Vec<FARule> = pat_nfa_design.accept_states.iter().map(|state| FARule {
-                    state: *state,
-                    character: '\u{029e}',
-                    next_state: pat_nfa_design.start_state
-                }).collect();
+                let mut extra_rules: Vec<FARule> = pat_nfa_design
+                    .accept_states
+                    .iter()
+                    .map(|state| FARule {
+                        state: *state,
+                        character: '\u{029e}',
+                        next_state: pat_nfa_design.start_state,
+                    })
+                    .collect();
                 rules.append(&mut extra_rules);
-                rules.append(&mut vec![FARule{
+                rules.append(&mut vec![FARule {
                     state: start_state,
                     character: '\u{029e}',
-                    next_state: pat_nfa_design.start_state
+                    next_state: pat_nfa_design.start_state,
                 }]);
                 let rulebook = NFARuleBook { rules: rules };
                 return NFADesign {
                     start_state,
                     accept_states,
-                    rulebook
+                    rulebook,
                 };
             }
         }
@@ -315,7 +319,7 @@ fn main() {
             first: Box::new(Literal { character: 'a' }),
             second: Box::new(Literal { character: 'b' }),
         }),
-        second: Box::new(Literal { character: 'c' })
+        second: Box::new(Literal { character: 'c' }),
     };
     println!("{}", pattern.to_s());
     println!("abc => {}", pattern.matches(String::from("abc")));
@@ -324,7 +328,7 @@ fn main() {
 
     let pattern = Choose {
         first: Box::new(Literal { character: 'a' }),
-        second: Box::new(Literal { character: 'b' })
+        second: Box::new(Literal { character: 'b' }),
     };
     println!("{}", pattern.to_s());
     println!("a => {}", pattern.matches(String::from("a")));
@@ -360,11 +364,11 @@ fn main() {
 
     println!("複雑なパターン");
     let pattern = Repeat(Box::new(Concatenate {
-        first: Box::new(Literal {character: 'a'}),
+        first: Box::new(Literal { character: 'a' }),
         second: Box::new(Choose {
             first: Box::new(Empty),
-            second: Box::new(Literal {character: 'b'})
-        })
+            second: Box::new(Literal { character: 'b' }),
+        }),
     }));
     println!("{}", pattern.to_s());
     println!(" => {}", pattern.matches(String::from("")));
