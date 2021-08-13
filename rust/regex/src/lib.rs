@@ -1,3 +1,3 @@
 pub mod nfa;
-pub mod pattern;
 pub mod parse;
+pub mod pattern;

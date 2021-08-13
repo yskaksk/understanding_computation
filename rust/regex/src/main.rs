@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use regex::pattern::Pattern::*;
 use regex::parse;
+use regex::pattern::Pattern::*;
 
 fn main() {
     let pattern = Empty;

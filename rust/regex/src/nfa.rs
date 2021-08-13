@@ -133,5 +133,3 @@ impl NFADesign {
         nfa.read_string(string).accepting()
     }
 }
-
-

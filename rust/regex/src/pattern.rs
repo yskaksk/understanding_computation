@@ -1,7 +1,7 @@
-use std::collections::HashSet;
 use rand;
+use std::collections::HashSet;
 
-use crate::nfa::{FARule, NFARuleBook, NFADesign};
+use crate::nfa::{FARule, NFADesign, NFARuleBook};
 
 pub enum Pattern {
     Empty,
@@ -106,7 +106,7 @@ impl Pattern {
                 let mut extra_rules: Vec<FARule> = first_nfa_design
                     .accept_states
                     .iter()
-                    .map(|state| FARule::new(*state, '\u{029e}',second_start_state,))
+                    .map(|state| FARule::new(*state, '\u{029e}', second_start_state))
                     .collect();
                 rules.append(&mut extra_rules);
                 let rulebook = NFARuleBook { rules: rules };
@@ -149,10 +149,14 @@ impl Pattern {
                 let mut extra_rules: Vec<FARule> = pat_nfa_design
                     .accept_states
                     .iter()
-                    .map(|state| FARule::new(*state,'\u{029e}',pat_nfa_design.start_state))
+                    .map(|state| FARule::new(*state, '\u{029e}', pat_nfa_design.start_state))
                     .collect();
                 rules.append(&mut extra_rules);
-                rules.append(&mut vec![FARule::new(start_state,'\u{029e}',pat_nfa_design.start_state)]);
+                rules.append(&mut vec![FARule::new(
+                    start_state,
+                    '\u{029e}',
+                    pat_nfa_design.start_state,
+                )]);
                 let rulebook = NFARuleBook { rules: rules };
                 return NFADesign {
                     start_state,
