@@ -3,6 +3,7 @@ use std::collections::HashSet;
 
 use crate::nfa::{FARule, NFADesign, NFARuleBook};
 
+#[derive(Debug)]
 pub enum Pattern {
     Empty,
     Literal {
