@@ -2,44 +2,44 @@ use crate::pattern::Pattern::{self, *};
 
 struct Reader {
     regex: Vec<char>,
-    index: i32
+    index: i32,
 }
 
 impl Reader {
     fn new(regex: &str) -> Self {
         return Reader {
             regex: regex.chars().collect(),
-            index: 0
-        }
+            index: 0,
+        };
     }
 
     fn current(&self) -> char {
-        return self.regex[self.index as usize]
+        return self.regex[self.index as usize];
     }
 
     fn at_end(&self) -> bool {
-        return self.index as usize == self.regex.len()
+        return self.index as usize == self.regex.len();
     }
 
     fn is_literal(&self) -> bool {
         if self.at_end() {
-            return false
+            return false;
         }
         if vec!['*', '|', '(', ')'].contains(&self.current()) {
-            return false
+            return false;
         }
-        return true
+        return true;
     }
 
     fn consume(&mut self, c: char) -> bool {
         if self.at_end() {
-            return false
+            return false;
         }
         let b = self.current() == c;
         if b {
             self.step();
         }
-        return b
+        return b;
     }
 
     fn expect(&mut self, c: char) {
@@ -72,18 +72,18 @@ fn choose(r: &mut Reader) -> Pattern {
         let s = choose(r);
         return Choose {
             first: Box::new(f),
-            second: Box::new(s)
-        }
+            second: Box::new(s),
+        };
     } else {
         let f = concatenate(r);
         if r.consume('|') {
             let s = choose(r);
             return Choose {
                 first: Box::new(f),
-                second: Box::new(s)
-            }
+                second: Box::new(s),
+            };
         } else {
-            return f
+            return f;
         }
     }
 }
@@ -96,16 +96,16 @@ fn concatenate(r: &mut Reader) -> Pattern {
     } else {
         Empty
     });
-    return Concatenate { first, second }
+    return Concatenate { first, second };
 }
 
 // repeat = brackets("*")?
 fn repeat(r: &mut Reader) -> Pattern {
     let b = brackets(r);
     if r.consume('*') {
-        return Repeat(Box::new(b))
+        return Repeat(Box::new(b));
     } else {
-        return b
+        return b;
     }
 }
 
@@ -124,7 +124,5 @@ fn brackets(r: &mut Reader) -> Pattern {
 fn literal(r: &mut Reader) -> Pattern {
     let c = r.current();
     r.step();
-    return Literal {
-        character: c
-    }
+    return Literal { character: c };
 }
