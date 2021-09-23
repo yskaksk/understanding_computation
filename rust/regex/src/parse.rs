@@ -31,17 +31,6 @@ impl Reader {
         return true;
     }
 
-    fn consume(&mut self, c: char) -> bool {
-        if self.at_end() {
-            return false;
-        }
-        let b = self.current() == c;
-        if b {
-            self.step();
-        }
-        return b;
-    }
-
     fn expect(&mut self, c: char) {
         if self.at_end() {
             eprintln!("expected {} but input ends", c);
@@ -53,6 +42,13 @@ impl Reader {
             eprintln!("expected {} but not", c);
             std::process::exit(1);
         }
+    }
+
+    fn is(&mut self, c: char) -> bool {
+        if self.at_end() {
+            return false
+        }
+        return self.current() == c;
     }
 
     fn step(&mut self) {
@@ -67,24 +63,25 @@ pub fn parse(reg: String) -> Pattern {
 
 // choose = concatenate_or_empty ("|" choose)?
 fn choose(r: &mut Reader) -> Pattern {
-    if r.consume('|') {
-        let f = Empty;
+    let f = concatenate_or_empty(r);
+    if r.is('|') {
+        r.step();
         let s = choose(r);
         return Choose {
             first: Box::new(f),
             second: Box::new(s),
         };
     } else {
-        let f = concatenate(r);
-        if r.consume('|') {
-            let s = choose(r);
-            return Choose {
-                first: Box::new(f),
-                second: Box::new(s),
-            };
-        } else {
-            return f;
-        }
+        return f;
+    }
+}
+
+// connatenate_or_empty = concatenate | empty
+fn concatenate_or_empty(r: &mut Reader) -> Pattern {
+    if r.is('|') {
+        return Empty
+    } else {
+        return concatenate(r)
     }
 }
 
@@ -102,7 +99,8 @@ fn concatenate(r: &mut Reader) -> Pattern {
 // repeat = brackets("*")?
 fn repeat(r: &mut Reader) -> Pattern {
     let b = brackets(r);
-    if r.consume('*') {
+    if r.is('*') {
+        r.step();
         return Repeat(Box::new(b));
     } else {
         return b;
@@ -111,7 +109,8 @@ fn repeat(r: &mut Reader) -> Pattern {
 
 // brackets = "(" choose ")" | literal
 fn brackets(r: &mut Reader) -> Pattern {
-    return if r.consume('(') {
+    return if r.is('(') {
+        r.step();
         let pat = choose(r);
         r.expect(')');
         pat
