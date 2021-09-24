@@ -1,7 +1,7 @@
 use rand;
 use std::collections::HashSet;
 
-use crate::nfa::{FARule, NFADesign, NFARuleBook};
+use crate::nfa::{FARule, NFADesign, NFARuleBook, StateInt};
 
 #[derive(Debug)]
 pub enum Pattern {
@@ -69,16 +69,16 @@ impl Pattern {
         }
     }
 
-    pub fn to_nfa_design(&self) -> NFADesign {
+    pub fn to_nfa_design(&self) -> NFADesign<StateInt> {
         match self {
             Empty => {
                 let start_state: i32 = rand::random();
                 let mut accept_states = HashSet::new();
-                accept_states.insert(start_state);
-                let rules: Vec<FARule> = vec![];
+                accept_states.insert(StateInt::new(start_state));
+                let rules: Vec<FARule<StateInt>> = vec![];
                 let rulebook = NFARuleBook { rules };
                 return NFADesign {
-                    start_state,
+                    start_state: StateInt::new(start_state),
                     accept_states,
                     rulebook,
                 };
@@ -86,12 +86,16 @@ impl Pattern {
             Literal { character } => {
                 let start_state: i32 = rand::random();
                 let accept_state: i32 = rand::random();
-                let rule = FARule::new(start_state, *character, accept_state);
+                let rule = FARule::new(
+                    StateInt::new(start_state),
+                    *character,
+                    StateInt::new(accept_state),
+                );
                 let rulebook = NFARuleBook { rules: vec![rule] };
                 let mut accept_states = HashSet::new();
-                accept_states.insert(accept_state);
+                accept_states.insert(StateInt::new(accept_state));
                 return NFADesign {
-                    start_state,
+                    start_state: StateInt::new(start_state),
                     accept_states,
                     rulebook,
                 };
@@ -103,11 +107,11 @@ impl Pattern {
                 let accept_states = second_nfa_design.accept_states;
                 let mut rules = first_nfa_design.rulebook.rules.clone();
                 rules.append(&mut second_nfa_design.rulebook.rules.clone());
-                let second_start_state: i32 = second_nfa_design.start_state.clone();
-                let mut extra_rules: Vec<FARule> = first_nfa_design
+                let second_start_state = second_nfa_design.start_state.clone();
+                let mut extra_rules: Vec<FARule<StateInt>> = first_nfa_design
                     .accept_states
                     .iter()
-                    .map(|state| FARule::new(*state, '\u{029e}', second_start_state))
+                    .map(|state| FARule::new(state.clone(), '\u{029e}', second_start_state.clone()))
                     .collect();
                 rules.append(&mut extra_rules);
                 let rulebook = NFARuleBook { rules: rules };
@@ -121,15 +125,24 @@ impl Pattern {
                 let first_nfa_design = first.to_nfa_design();
                 let second_nfa_design = second.to_nfa_design();
 
-                let start_state: i32 = rand::random();
-                let mut accept_states: HashSet<i32> = HashSet::new();
+                let start_int: i32 = rand::random();
+                let start_state = StateInt::new(start_int);
+                let mut accept_states: HashSet<StateInt> = HashSet::new();
                 accept_states.extend(first_nfa_design.accept_states.clone());
                 accept_states.extend(second_nfa_design.accept_states.clone());
                 let mut rules = first_nfa_design.rulebook.rules.clone();
                 rules.append(&mut second_nfa_design.rulebook.rules.clone());
-                let mut extra_rules: Vec<FARule> = vec![
-                    FARule::new(start_state, '\u{029e}', first_nfa_design.start_state),
-                    FARule::new(start_state, '\u{029e}', second_nfa_design.start_state),
+                let mut extra_rules: Vec<FARule<StateInt>> = vec![
+                    FARule::new(
+                        start_state.clone(),
+                        '\u{029e}',
+                        first_nfa_design.start_state,
+                    ),
+                    FARule::new(
+                        start_state.clone(),
+                        '\u{029e}',
+                        second_nfa_design.start_state,
+                    ),
                 ];
                 rules.append(&mut extra_rules);
                 let rulebook = NFARuleBook { rules: rules };
@@ -142,19 +155,26 @@ impl Pattern {
             Repeat(pat) => {
                 let pat_nfa_design = pat.to_nfa_design();
 
-                let start_state: i32 = rand::random();
-                let mut accept_states: HashSet<i32> = HashSet::new();
+                let start_int: i32 = rand::random();
+                let start_state = StateInt::new(start_int);
+                let mut accept_states: HashSet<StateInt> = HashSet::new();
                 accept_states.extend(pat_nfa_design.accept_states.clone());
-                accept_states.insert(start_state);
+                accept_states.insert(start_state.clone());
                 let mut rules = pat_nfa_design.rulebook.rules.clone();
-                let mut extra_rules: Vec<FARule> = pat_nfa_design
+                let mut extra_rules: Vec<FARule<StateInt>> = pat_nfa_design
                     .accept_states
                     .iter()
-                    .map(|state| FARule::new(*state, '\u{029e}', pat_nfa_design.start_state))
+                    .map(|state| {
+                        FARule::new(
+                            state.clone(),
+                            '\u{029e}',
+                            pat_nfa_design.start_state.clone(),
+                        )
+                    })
                     .collect();
                 rules.append(&mut extra_rules);
                 rules.append(&mut vec![FARule::new(
-                    start_state,
+                    start_state.clone(),
                     '\u{029e}',
                     pat_nfa_design.start_state,
                 )]);
