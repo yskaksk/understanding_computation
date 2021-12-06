@@ -130,7 +130,7 @@ impl DPDARuleBook {
 }
 
 #[derive(Clone)]
-struct DPDA {
+    struct DPDA {
     current_configuration: PDAConfiguration,
     accept_states: Vec<State>,
     rulebook: DPDARuleBook,
@@ -341,6 +341,7 @@ mod tests {
         );
     }
 
+    #[test]
     fn test_dpdadesign() {
         let rulebook = DPDARuleBook {
             rules: vec![
@@ -385,6 +386,7 @@ mod tests {
         assert!(!dpda_design.accepts(String::from("(()(()(()()(()()))()")));
     }
 
+    #[test]
     fn test_dpda_stuck() {
         let rulebook = DPDARuleBook {
             rules: vec![
@@ -444,5 +446,173 @@ mod tests {
             rulebook: rulebook.clone(),
         };
         assert!(!dpda_design.accepts(String::from("())")))
+    }
+
+    #[test]
+    fn test_same_chars() {
+        let rulebook = DPDARuleBook {
+            rules: vec![
+                PDARule {
+                    state: 1,
+                    character: 'a',
+                    next_state: 2,
+                    pop_character: '$',
+                    push_characters: vec!['a', '$'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'b',
+                    next_state: 2,
+                    pop_character: '$',
+                    push_characters: vec!['b', '$'],
+                },
+                PDARule {
+                    state: 2,
+                    character: 'a',
+                    next_state: 2,
+                    pop_character: 'a',
+                    push_characters: vec!['a', 'a'],
+                },
+                PDARule {
+                    state: 2,
+                    character: 'b',
+                    next_state: 2,
+                    pop_character: 'b',
+                    push_characters: vec!['b', 'b'],
+                },
+                PDARule {
+                    state: 2,
+                    character: 'a',
+                    next_state: 2,
+                    pop_character: 'b',
+                    push_characters: vec![],
+                },
+                PDARule {
+                    state: 2,
+                    character: 'b',
+                    next_state: 2,
+                    pop_character: 'a',
+                    push_characters: vec![],
+                },
+                PDARule {
+                    state: 2,
+                    character: NIL,
+                    next_state: 1,
+                    pop_character: '$',
+                    push_characters: vec!['$'],
+                },
+            ]
+        };
+        let dpda_design = DPDADesign {
+            start_state: 1,
+            bottom_character: '$',
+            accept_states: vec![1],
+            rulebook
+        };
+        assert!(dpda_design.accepts(String::from("ababab")));
+        assert!(dpda_design.accepts(String::from("bbbaaaab")));
+        assert!(!dpda_design.accepts(String::from("baa")));
+    }
+
+    #[test]
+    fn test_palindrome() {
+        let rulebook = DPDARuleBook {
+            rules: vec![
+                PDARule {
+                    state: 1,
+                    character: 'a',
+                    next_state: 1,
+                    pop_character: '$',
+                    push_characters: vec!['a', '$'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'a',
+                    next_state: 1,
+                    pop_character: 'a',
+                    push_characters: vec!['a', 'a'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'a',
+                    next_state: 1,
+                    pop_character: 'b',
+                    push_characters: vec!['a', 'b'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'b',
+                    next_state: 1,
+                    pop_character: '$',
+                    push_characters: vec!['b', '$'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'b',
+                    next_state: 1,
+                    pop_character: 'a',
+                    push_characters: vec!['b', 'a'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'b',
+                    next_state: 1,
+                    pop_character: 'b',
+                    push_characters: vec!['b', 'b'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'm',
+                    next_state: 2,
+                    pop_character: '$',
+                    push_characters: vec!['$'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'm',
+                    next_state: 2,
+                    pop_character: 'a',
+                    push_characters: vec!['a'],
+                },
+                PDARule {
+                    state: 1,
+                    character: 'm',
+                    next_state: 2,
+                    pop_character: 'b',
+                    push_characters: vec!['b'],
+                },
+                PDARule {
+                    state: 2,
+                    character: 'a',
+                    next_state: 2,
+                    pop_character: 'a',
+                    push_characters: vec![],
+                },
+                PDARule {
+                    state: 2,
+                    character: 'b',
+                    next_state: 2,
+                    pop_character: 'b',
+                    push_characters: vec![],
+                },
+                PDARule {
+                    state: 2,
+                    character: NIL,
+                    next_state: 3,
+                    pop_character: '$',
+                    push_characters: vec!['$'],
+                },
+            ]
+        };
+        let dpda_design = DPDADesign {
+            start_state: 1,
+            bottom_character: '$',
+            accept_states: vec![3],
+            rulebook
+        };
+        assert!(dpda_design.accepts(String::from("abmba")));
+        assert!(dpda_design.accepts(String::from("babbamabbab")));
+        assert!(!dpda_design.accepts(String::from("abmb")));
+        assert!(!dpda_design.accepts(String::from("baambaa")));
     }
 }
