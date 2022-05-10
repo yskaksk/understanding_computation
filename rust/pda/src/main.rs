@@ -130,7 +130,7 @@ impl DPDARuleBook {
 }
 
 #[derive(Clone)]
-    struct DPDA {
+struct DPDA {
     current_configuration: PDAConfiguration,
     accept_states: Vec<State>,
     rulebook: DPDARuleBook,
@@ -501,13 +501,13 @@ mod tests {
                     pop_character: '$',
                     push_characters: vec!['$'],
                 },
-            ]
+            ],
         };
         let dpda_design = DPDADesign {
             start_state: 1,
             bottom_character: '$',
             accept_states: vec![1],
-            rulebook
+            rulebook,
         };
         assert!(dpda_design.accepts(String::from("ababab")));
         assert!(dpda_design.accepts(String::from("bbbaaaab")));
@@ -602,13 +602,13 @@ mod tests {
                     pop_character: '$',
                     push_characters: vec!['$'],
                 },
-            ]
+            ],
         };
         let dpda_design = DPDADesign {
             start_state: 1,
             bottom_character: '$',
             accept_states: vec![3],
-            rulebook
+            rulebook,
         };
         assert!(dpda_design.accepts(String::from("abmba")));
         assert!(dpda_design.accepts(String::from("babbamabbab")));
