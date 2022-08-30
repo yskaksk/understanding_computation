@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 type State = i32;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -115,14 +117,16 @@ struct DTMRulebook {
 
 impl DTMRulebook {
     fn next_configuration(&self, configuration: &TMConfiguration) -> TMConfiguration {
-        self.rule_for(configuration).follow(configuration)
+        self.rule_for(configuration).unwrap().follow(configuration)
     }
-    fn rule_for(&self, configuration: &TMConfiguration) -> TMRule {
+    fn rule_for(&self, configuration: &TMConfiguration) -> Option<TMRule> {
         self.rules
             .clone()
             .into_iter()
             .find(|rule| rule.applies_to(configuration))
-            .unwrap()
+    }
+    fn applies_to(&self, configuration: &TMConfiguration) -> bool {
+        self.rule_for(configuration).is_some()
     }
 }
 
@@ -144,11 +148,14 @@ impl DTM {
     }
     fn run(&mut self) {
         loop {
-            if self.accepting() {
+            if self.accepting() || self.is_stuck() {
                 break;
             }
             self.step();
         }
+    }
+    fn is_stuck(&self) -> bool {
+        !self.accepting() && !self.rulebook.applies_to(&self.current_configuration)
     }
 }
 
@@ -274,5 +281,125 @@ mod tests {
             dtm.current_configuration
         );
         assert!(dtm.accepting());
+    }
+
+    #[test]
+    fn test_dtm_stuck() {
+        // given
+        let rulebook = DTMRulebook {
+            rules: vec![
+                TMRule::new(1, '0', 2, '1', Direction::Right),
+                TMRule::new(1, '1', 1, '0', Direction::Left),
+                TMRule::new(1, '_', 2, '1', Direction::Right),
+                TMRule::new(2, '0', 2, '0', Direction::Right),
+                TMRule::new(2, '1', 2, '1', Direction::Right),
+                TMRule::new(2, '_', 3, '_', Direction::Left),
+            ],
+        };
+        let tape = Tape::new(vec!['1', '2', '1'], '1', vec![], '_');
+        let mut dtm = DTM {
+            current_configuration: TMConfiguration::new(1, tape),
+            accept_states: vec![3],
+            rulebook,
+        };
+
+        // when
+        dtm.run();
+
+        // then
+        assert_eq!(
+            TMConfiguration::new(1, Tape::new(vec!['1'], '2', vec!['0', '0'], '_')),
+            dtm.current_configuration
+        );
+        assert!(!dtm.accepting());
+        assert!(dtm.is_stuck());
+    }
+
+    #[test]
+    fn test_aaabbbccc() {
+        // given
+        let rulebook = DTMRulebook {
+            rules: vec![
+                TMRule::new(1, 'X', 1, 'X', Direction::Right),
+                TMRule::new(1, 'a', 2, 'X', Direction::Right),
+                TMRule::new(1, '_', 6, '_', Direction::Left),
+                TMRule::new(2, 'a', 2, 'a', Direction::Right),
+                TMRule::new(2, 'X', 2, 'X', Direction::Right),
+                TMRule::new(2, 'b', 3, 'X', Direction::Right),
+                TMRule::new(3, 'b', 3, 'b', Direction::Right),
+                TMRule::new(3, 'X', 3, 'X', Direction::Right),
+                TMRule::new(3, 'c', 4, 'X', Direction::Right),
+                TMRule::new(4, 'c', 4, 'c', Direction::Right),
+                TMRule::new(4, '_', 5, '_', Direction::Left),
+                TMRule::new(5, 'a', 5, 'a', Direction::Left),
+                TMRule::new(5, 'b', 5, 'b', Direction::Left),
+                TMRule::new(5, 'c', 5, 'c', Direction::Left),
+                TMRule::new(5, 'X', 5, 'X', Direction::Left),
+                TMRule::new(5, '_', 1, '_', Direction::Right),
+            ],
+        };
+        let tape = Tape::new(
+            vec![],
+            'a',
+            vec!['a', 'a', 'b', 'b', 'b', 'c', 'c', 'c'],
+            '_',
+        );
+        let mut dtm = DTM {
+            current_configuration: TMConfiguration::new(1, tape),
+            accept_states: vec![6],
+            rulebook,
+        };
+
+        // when
+        for _ in 0..10 {
+            dtm.step();
+        }
+        // then
+        assert_eq!(
+            TMConfiguration::new(
+                5,
+                Tape::new(
+                    vec!['X', 'a', 'a', 'X', 'b', 'b', 'X', 'c'],
+                    'c',
+                    vec!['_'],
+                    '_'
+                )
+            ),
+            dtm.current_configuration
+        );
+
+        // when
+        for _ in 0..25 {
+            dtm.step();
+        }
+        // then
+        assert_eq!(
+            TMConfiguration::new(
+                5,
+                Tape::new(
+                    vec!['_', 'X', 'X', 'a'],
+                    'X',
+                    vec!['X', 'b', 'X', 'X', 'c', '_'],
+                    '_'
+                )
+            ),
+            dtm.current_configuration
+        );
+
+        // when
+        dtm.run();
+        // then
+        assert_eq!(
+            TMConfiguration::new(
+                6,
+                Tape::new(
+                    vec!['_', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X'],
+                    'X',
+                    vec!['_'],
+                    '_'
+                )
+            ),
+            dtm.current_configuration
+        );
     }
 }
